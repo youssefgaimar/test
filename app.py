@@ -43,8 +43,9 @@ Resume solo lo importante en 5-8 líneas. No repitas trivialidades. Si hay tarea
             resumenes.append(f"[ERROR en bloque {i+1}: {str(e)}]")
 
     resumen_completo = "\n".join(resumenes)
-    st.session_state.contexto = f"Este es el resumen general del día basado en todos los mensajes:
-{resumen_completo}"
+    st.session_state.contexto = f"""Este es el resumen general del día basado en todos los mensajes:
+{resumen_completo}
+"""
     st.session_state.historial.append({
         "usuario": "[Sistema]",
         "ia": "Hola jefe, he resumido todos los mensajes del día. ¿Qué desea saber primero?"

@@ -16,31 +16,41 @@ st.markdown("Primero, sube un archivo `.txt` con los mensajes del día (uno por 
 archivo = st.file_uploader("Subir archivo", type="txt")
 
 if archivo is not None and not st.session_state.cargado:
-    mensajes = archivo.read().decode("utf-8").splitlines()
-    contenido_mensajes = "\n".join([f"- {m}" for m in mensajes])
+    lineas = archivo.read().decode("utf-8").splitlines()
+    bloques = [lineas[i:i+200] for i in range(0, len(lineas), 200)]
+    resumenes = []
 
-    st.session_state.contexto = f"""
-Has recibido las siguientes conversaciones internas entre trabajadores hoy. Tu tarea es actuar como un asistente profesional que prepara un informe diario para el presidente de la empresa.
+    for i, bloque in enumerate(bloques):
+        bloque_texto = "\n".join([f"- {m}" for m in bloque])
+        prompt_resumen = f"""
+Tienes los siguientes mensajes internos de una empresa que exporta frutas:
+{bloque_texto}
 
-Analiza todos los mensajes. Ignora lo trivial (como fiestas, comida, charlas personales), y enfócate en lo que el presidente necesita saber:
-- Problemas importantes
-- Avances clave
-- Riesgos
-- Decisiones críticas
-- Cualquier hecho que merezca su atención
-
-Tu respuesta debe ser breve, clara, y enfocada en lo esencial.
-Incluye si quieres una o dos recomendaciones concretas al final, si aplican.
-
-Aquí están los mensajes de hoy:
-{contenido_mensajes}
+Resume solo lo importante en 5-8 líneas. No repitas trivialidades. Si hay tareas, reclamaciones, problemas o avances, inclúyelos.
 """
+        try:
+            respuesta_bloque = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Eres un experto en logística y operaciones que resume mensajes empresariales."},
+                    {"role": "user", "content": prompt_resumen}
+                ],
+                temperature=0.4,
+                max_tokens=300
+            )
+            resumenes.append(respuesta_bloque.choices[0].message.content)
+        except Exception as e:
+            resumenes.append(f"[ERROR en bloque {i+1}: {str(e)}]")
+
+    resumen_completo = "\n".join(resumenes)
+    st.session_state.contexto = f"Este es el resumen general del día basado en todos los mensajes:
+{resumen_completo}"
     st.session_state.historial.append({
-        "usuario": "[Sistema]", 
-        "ia": "Hola jefe, he leído todos los mensajes del día. ¿Qué desea saber primero?"
+        "usuario": "[Sistema]",
+        "ia": "Hola jefe, he resumido todos los mensajes del día. ¿Qué desea saber primero?"
     })
     st.session_state.cargado = True
-    st.success("📥 Archivo cargado correctamente. Ya puedes hacer preguntas sobre el día.")
+    st.success("📥 Archivo procesado y resumido correctamente. Ya puedes hacer preguntas.")
 
 # Mostrar historial tipo chat + campo de entrada
 if st.session_state.cargado:
@@ -55,7 +65,7 @@ if st.session_state.cargado:
 
     if pregunta:
         mensajes = [
-            {"role": "system", "content": "Eres un asistente profesional que responde de forma breve y clara a preguntas sobre el resumen diario de una empresa. Incluye consejos si es útil."},
+            {"role": "system", "content": "Eres un asistente profesional que responde de forma breve y clara a preguntas sobre el resumen diario de una empresa exportadora de frutas. Incluye consejos si es útil."},
             {"role": "user", "content": st.session_state.contexto}
         ]
         for entrada in st.session_state.historial:

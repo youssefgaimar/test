@@ -9,18 +9,19 @@ st.title("💬 Chat con el Resumen del Día")
 # Inicializar historial y contexto
 if "historial" not in st.session_state:
     st.session_state.historial = []
+if "contexto" not in st.session_state:
     st.session_state.contexto = ""
+if "cargado" not in st.session_state:
     st.session_state.cargado = False
 
-if not st.session_state.cargado:
-    st.markdown("Primero, sube un archivo `.txt` con los mensajes del día (uno por línea):")
-    archivo = st.file_uploader("Subir archivo", type="txt")
+st.markdown("Primero, sube un archivo `.txt` con los mensajes del día (uno por línea):")
+archivo = st.file_uploader("Subir archivo", type="txt")
 
-    if archivo is not None:
-        mensajes = archivo.read().decode("utf-8").splitlines()
-        contenido_mensajes = "\n".join([f"- {m}" for m in mensajes])
+if archivo is not None and not st.session_state.cargado:
+    mensajes = archivo.read().decode("utf-8").splitlines()
+    contenido_mensajes = "\n".join([f"- {m}" for m in mensajes])
 
-        st.session_state.contexto = f"""
+    st.session_state.contexto = f"""
 Has recibido las siguientes conversaciones internas entre trabajadores hoy. Tu tarea es actuar como un asistente profesional que prepara un informe diario para el presidente de la empresa.
 
 Analiza todos los mensajes. Ignora lo trivial (como fiestas, comida, charlas personales), y enfócate en lo que el presidente necesita saber:
@@ -33,10 +34,10 @@ Analiza todos los mensajes. Ignora lo trivial (como fiestas, comida, charlas per
 Aquí están los mensajes de hoy:
 {contenido_mensajes}
 """
-        st.session_state.cargado = True
-        st.success("📥 Archivo cargado correctamente. Ya puedes hacer preguntas sobre el día.")
-else:
-    # Campo de entrada tipo chat
+    st.session_state.cargado = True
+    st.success("📥 Archivo cargado correctamente. Ya puedes hacer preguntas sobre el día.")
+
+if st.session_state.cargado:
     pregunta = st.text_input("Haz una pregunta sobre lo que pasó hoy:")
 
     if pregunta:
@@ -44,12 +45,11 @@ else:
             {"role": "system", "content": "Eres un asistente profesional que responde preguntas sobre el resumen diario de una empresa."},
             {"role": "user", "content": st.session_state.contexto}
         ]
-        # Añadir todo el historial previo
-        for i, entrada in enumerate(st.session_state.historial):
+
+        for entrada in st.session_state.historial:
             mensajes.append({"role": "user", "content": entrada["usuario"]})
             mensajes.append({"role": "assistant", "content": entrada["ia"]})
 
-        # Añadir la nueva pregunta
         mensajes.append({"role": "user", "content": pregunta})
 
         try:
@@ -66,7 +66,6 @@ else:
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
-    # Mostrar historial del chat
     if st.session_state.historial:
         st.markdown("---")
         st.markdown("### 🕒 Historial de la conversación")

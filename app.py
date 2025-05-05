@@ -1,20 +1,23 @@
 import streamlit as st
 from openai import OpenAI
 
+# 🔐 Configura tu clave desde .streamlit/secrets.toml
 client = OpenAI(api_key=st.secrets["openai_key"])
 
 st.set_page_config(page_title="Chat de Resumen Diario", layout="centered")
 st.title("💬 Chat con el Resumen del Día")
 
-# Inicializar historial y contexto
+# 🧠 Inicializar sesión
 if "historial" not in st.session_state:
     st.session_state.historial = []
     st.session_state.contexto = ""
     st.session_state.cargado = False
 
+# 📤 Subida de archivo
 st.markdown("Primero, sube un archivo `.txt` con los mensajes del día (uno por línea):")
 archivo = st.file_uploader("Subir archivo", type="txt")
 
+# 📚 Procesamiento del archivo
 if archivo is not None and not st.session_state.cargado:
     lineas = archivo.read().decode("utf-8").splitlines()
     bloques = [lineas[i:i+200] for i in range(0, len(lineas), 200)]
@@ -53,7 +56,7 @@ Resume solo lo importante en 5-8 líneas. No repitas trivialidades. Si hay tarea
     st.session_state.cargado = True
     st.success("📥 Archivo procesado y resumido correctamente. Ya puedes hacer preguntas.")
 
-# Mostrar historial tipo chat + campo de entrada
+# 💬 Interfaz de chat
 if st.session_state.cargado:
     st.markdown("---")
     st.markdown("### 🧾 Conversación")
@@ -88,5 +91,4 @@ if st.session_state.cargado:
             st.rerun()
         except Exception as e:
             st.error(f"Error: {str(e)}")
-
 
